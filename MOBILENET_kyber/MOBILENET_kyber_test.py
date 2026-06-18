@@ -191,7 +191,7 @@ if __name__ == "__main__":
     upper_bound = np.percentile(ge_trends, 90, axis=1)
     lower_bound = np.percentile(ge_trends, 10, axis=1)
     
-    x_axis = range(1, MAX_ATTACK_TRACES + 1)
+    x_axis = range(1, MAX_ATTACK_TRACES + 1) 
     
     for idx in range(26):
         plt.plot(x_axis, ge_trends[:, idx], alpha=0.04, linewidth=0.5, color='gray')
