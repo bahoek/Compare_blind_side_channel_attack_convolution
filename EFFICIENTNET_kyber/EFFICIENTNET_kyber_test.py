@@ -164,8 +164,6 @@ if __name__ == "__main__":
         for i in tqdm(range(0, MAX_ATTACK_TRACES, 128), desc="⚡ Network Inference"):
             batch_x_np = traces[i:i+128]
             X_tensor = torch.from_numpy(batch_x_np).float()
-            # Standard Z-Score normalization framework
-            X_tensor = (X_tensor - X_tensor.mean(dim=1, keepdim=True)) / (X_tensor.std(dim=1, keepdim=True) + 1e-12)
             X_tensor = X_tensor.unsqueeze(1).to(DEVICE)
             
             outputs = model(X_tensor)
