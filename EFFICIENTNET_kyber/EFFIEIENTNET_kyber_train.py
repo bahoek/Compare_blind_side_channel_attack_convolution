@@ -97,9 +97,9 @@ class MBConv(nn.Module):
         else:
             return self.conv(x)
 
-class EfficientNetB0_UpperTarget(nn.Module):
+class EfficientNetB0(nn.Module):
     def __init__(self, num_targets=26):
-        super(EfficientNetB0_UpperTarget, self).__init__()
+        super(EfficientNetB0, self).__init__()
         self.num_targets = num_targets
         self.configs = [
             [1, 16, 1, 1, 3],
@@ -210,15 +210,15 @@ def evaluate_metrics(model, dataloader, device):
 if __name__ == "__main__":
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     BATCH_SIZE = 32
-    EPOCHS = 150
-    patience = 50
+    EPOCHS = 100
+    LR = 0.0001
+    patience = 15
     counter = 0
     best_val_acc = 0.0
-    LR = 0.0001
     
     # Repository directory settings
     MODEL_DIR = "./models"
-    save_path = os.path.join(MODEL_DIR, "kyber_EFF_50.pth")
+    save_path = os.path.join(MODEL_DIR, "kyber_ASC_measured.pth")
     os.makedirs(MODEL_DIR, exist_ok=True)
         
     train_path = "./data/measured_train.npz"
@@ -234,17 +234,21 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
     
-    model = EfficientNetB0_UpperTarget(num_targets=26).to(DEVICE)
+    model = EfficientNetB0(num_targets=26).to(DEVICE)
     criterion = nn.CrossEntropyLoss()
     scaler = GradScaler()
     
     optimizer = optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30, eta_min=1e-6)
     
+    # ⚙️ Optimization Boundary Conditions for Low-Entropy Target Tracking
+    min_delta = 0.5         # Minimum accuracy improvement required to clear early stopping patience
+    target_threshold = 95.0 # Early termination accuracy ceiling
+    
     best_model_relative_time = 0.0
     global_start_time = time.time()
     
-    print("🚀 Parallel Multi-Head EfficientNet Blind SCA Engine Initialized.")
+    print("🚀 Parallel Multi-Head Profiled Blind SCA Engine Initialized.")
     
     try:
         for epoch in range(EPOCHS):
@@ -259,7 +263,8 @@ if __name__ == "__main__":
                 batch_x, batch_y = batch_x.to(DEVICE), batch_y.to(DEVICE)
                 optimizer.zero_grad()
                 
-                with autocast():
+                # Updated to synchronized torch.amp API convention
+                with torch.amp.autocast('cuda' if torch.cuda.is_available() else 'cpu'):
                     outputs = model(batch_x)
                     total_loss = 0.0
                     for idx in range(26):
@@ -294,14 +299,33 @@ if __name__ == "__main__":
             print(f"   -> [Valid] Loss: {current_val_loss:.4f} | Accuracy: {val_accuracy:.2f}%")
             print(f"   -> [SCA]   Mean Guessing Entropy Plane: {avg_ge:.1f}")
             
-            if val_accuracy > best_val_acc:
-                best_val_acc = val_accuracy
+            is_significantly_improved = val_accuracy >= (best_val_acc + min_delta)
+            is_above_target = val_accuracy >= target_threshold
+
+            # 💡 [CRITICAL PATHWAYS]: Target-driven early execution interceptor
+            if is_above_target:
+                if val_accuracy > best_val_acc:
+                    best_val_acc = val_accuracy
+                    best_model_relative_time = time.time() - global_start_time
+                    torch.save(model.state_dict(), save_path)
+                
+                print(f"\n✨ [🎯 TARGET REACHED] Validation accuracy has exceeded the designated {target_threshold}% limit.")
+                print(f"💾 Optimized target weights compiled ➔ [Epoch {epoch+1} / Checkpoint Time: {best_model_relative_time/60:.2f} min]")
+                print("🛑 Convergence criterion satisfied. Terminating the remaining pipeline sessions cleanly.")
+                break
+
+            if is_significantly_improved:
+                if val_accuracy > best_val_acc:
+                    best_val_acc = val_accuracy
+                    best_model_relative_time = time.time() - global_start_time
+                    torch.save(model.state_dict(), save_path)
+                    print(f"💾 New Best Model Saved (Acc: {val_accuracy:.2f}%)")
+                
+                print(f"📈 [SIGNIFICANT UPDATE] Validation metric advanced by $\ge$ {min_delta}%. Resetting early stopping patience counters.")
                 counter = 0
-                best_model_relative_time = time.time() - global_start_time
-                torch.save(model.state_dict(), save_path)
-                print(f"💾 [BEST] Model weights dynamically updated -> {save_path}")
             else:
                 counter += 1
+                print(f"⚠️ Convergence plateau detected. Aggregating internal patience metric ➔ [{counter}/{patience}]")
                 
             if counter >= patience:
                 print("\n🛑 Early stopping triggered due to validation accuracy stagnation.")
