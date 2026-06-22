@@ -91,7 +91,7 @@ if __name__ == "__main__":
     
     # Standard repository directories
     MODEL_DIR = "./models"
-    save_path = os.path.join(MODEL_DIR, "kyber_ASC_open.pth")
+    save_path = os.path.join(MODEL_DIR, "kyber_RES_open.pth")
     os.makedirs(MODEL_DIR, exist_ok=True)
         
     train_path = "./data/train.npz"
@@ -114,10 +114,8 @@ if __name__ == "__main__":
     counter = 0
     best_epoch_idx = 0
     best_model_time = 0.0
-    
-    # ⚙️ Optimization Boundary Conditions for Low-Entropy Target Tracking
-    min_delta = 0.5         # Minimum accuracy improvement required to clear early stopping patience
-    target_threshold = 95.0 # Early termination accuracy ceiling
+    min_delta = 0.5         
+    target_threshold = 95.0
     
     scaler = GradScaler()
     start_time = time.time()
@@ -127,7 +125,7 @@ if __name__ == "__main__":
     criterion = nn.CrossEntropyLoss()
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=5)
     
-    print(f"🚀 ASCAD Profiled SCA Benchmarking Module Initialized. (Target Backend: {DEVICE})")
+    print(f"🚀 1D-ASCAD Profiled SCA Benchmarking Module Initialized. (Target Backend: {DEVICE})")
     
     try:
         for epoch in range(EPOCHS):
@@ -185,17 +183,13 @@ if __name__ == "__main__":
             is_significantly_improved = val_acc >= (best_acc + min_delta)
             is_above_target = val_acc >= target_threshold
 
-            # 💡 [CRITICAL PATHWAYS]: Target-driven early execution interceptor
             if is_above_target:
                 if val_acc > best_acc:
                     best_acc = val_acc
                     torch.save(model.state_dict(), save_path)
                     best_epoch_idx = epoch + 1
                     best_model_time = time.time() - start_time
-                
-                print(f"\n✨ [🎯 TARGET REACHED] Validation accuracy has exceeded the designated {target_threshold}% limit.")
-                print(f"💾 Optimized target weights compiled ➔ [Epoch {best_epoch_idx} / Checkpoint Time: {best_model_time // 60:.0f}m {best_model_time % 60:.0f}s]")
-                print("🛑 Convergence criterion satisfied. Terminating the remaining pipeline sessions cleanly.")
+                print(f"\n✨ [🎯 TARGET REACHED] Target Accuracy of {target_threshold}% Successfully Captured!")
                 break 
 
             if is_significantly_improved:
@@ -205,12 +199,9 @@ if __name__ == "__main__":
                     best_epoch_idx = epoch + 1
                     best_model_time = time.time() - start_time
                     print(f"💾 New Best Model Saved (Acc: {val_acc:.2f}%)")
-                
-                print(f"📈 [SIGNIFICANT UPDATE] Validation metric advanced by $\ge$ {min_delta}%. Resetting early stopping patience counters.")
                 counter = 0 
             else:
                 counter += 1
-                print(f"⚠️ Convergence plateau detected. Aggregating internal patience metric ➔ [{counter}/{patience}]")
 
             if counter >= patience:
                 print(f"🛑 Early stopping triggered at epoch {epoch+1} due to loss convergence boundaries.")
