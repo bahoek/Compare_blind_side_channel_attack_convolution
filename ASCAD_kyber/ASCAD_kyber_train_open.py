@@ -113,6 +113,11 @@ if __name__ == "__main__":
     patience = 15
     counter = 0
     best_epoch_idx = 0
+    best_model_time = 0.0
+    
+    # ⚙️ Optimization Boundary Conditions for Low-Entropy Target Tracking
+    min_delta = 0.5         # Minimum accuracy improvement required to clear early stopping patience
+    target_threshold = 95.0 # Early termination accuracy ceiling
     
     scaler = GradScaler()
     start_time = time.time()
@@ -139,7 +144,7 @@ if __name__ == "__main__":
                     loss = criterion(outputs, labels)
                     
                 scaler.scale(loss).backward()
-                scaler.scale(optimizer).step()
+                scaler.step(optimizer)
                 scaler.update()
                 
                 total_loss += loss.item()
@@ -177,13 +182,35 @@ if __name__ == "__main__":
             
             print(f"📊 Epoch {epoch+1}: Loss: {val_epoch_loss:.4f} | Train Acc: {train_acc:.2f}% | Val Acc: {val_acc:.2f}%")
             
-            if val_acc > best_acc:
-                best_acc = val_acc
-                torch.save(model.state_dict(), save_path)
-                best_epoch_idx = epoch + 1
+            is_significantly_improved = val_acc >= (best_acc + min_delta)
+            is_above_target = val_acc >= target_threshold
+
+            # 💡 [CRITICAL PATHWAYS]: Target-driven early execution interceptor
+            if is_above_target:
+                if val_acc > best_acc:
+                    best_acc = val_acc
+                    torch.save(model.state_dict(), save_path)
+                    best_epoch_idx = epoch + 1
+                    best_model_time = time.time() - start_time
+                
+                print(f"\n✨ [🎯 TARGET REACHED] Validation accuracy has exceeded the designated {target_threshold}% limit.")
+                print(f"💾 Optimized target weights compiled ➔ [Epoch {best_epoch_idx} / Checkpoint Time: {best_model_time // 60:.0f}m {best_model_time % 60:.0f}s]")
+                print("🛑 Convergence criterion satisfied. Terminating the remaining pipeline sessions cleanly.")
+                break 
+
+            if is_significantly_improved:
+                if val_acc > best_acc:
+                    best_acc = val_acc
+                    torch.save(model.state_dict(), save_path)
+                    best_epoch_idx = epoch + 1
+                    best_model_time = time.time() - start_time
+                    print(f"💾 New Best Model Saved (Acc: {val_acc:.2f}%)")
+                
+                print(f"📈 [SIGNIFICANT UPDATE] Validation metric advanced by $\ge$ {min_delta}%. Resetting early stopping patience counters.")
                 counter = 0 
             else:
                 counter += 1
+                print(f"⚠️ Convergence plateau detected. Aggregating internal patience metric ➔ [{counter}/{patience}]")
 
             if counter >= patience:
                 print(f"🛑 Early stopping triggered at epoch {epoch+1} due to loss convergence boundaries.")
