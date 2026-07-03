@@ -69,7 +69,6 @@ class ResNet18(nn.Module):
         self.in_channels = 64
         self.num_targets = num_targets
         
-        # 40,000 차원 광역 전력 파형 초기 압축 스템
         self.stem = nn.Sequential(
             nn.Conv1d(1, 64, kernel_size=11, stride=2, padding=5, bias=False),
             nn.BatchNorm1d(64),
@@ -82,7 +81,6 @@ class ResNet18(nn.Module):
         self.layer3 = self._make_layer(256, 2, stride=2)
         self.layer4 = self._make_layer(512, 2, stride=2)
         
-        # 26개 독립 헤드 선언 (각 축별 256클래스 확률 로짓 분출)
         self.classifiers = nn.ModuleList([
             nn.Sequential(
                 nn.Dropout(0.4),
@@ -104,7 +102,7 @@ class ResNet18(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        x = x.mean(dim=2) # GAP 연산 레이어 효과
+        x = x.mean(dim=2) 
         
         outputs = [clf(x) for clf in self.classifiers]
         return outputs
