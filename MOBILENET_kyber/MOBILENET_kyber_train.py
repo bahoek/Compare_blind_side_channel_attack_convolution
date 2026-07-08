@@ -80,7 +80,6 @@ class MobileNetV2(nn.Module):
         super(MobileNetV2, self).__init__()
         self.num_targets = num_targets
         
-        # 40,000 차원 초기 압축 스템
         self.stem = nn.Sequential(
             nn.Conv1d(1, 32, kernel_size=11, stride=2, padding=5, bias=False),
             nn.BatchNorm1d(32),
@@ -88,7 +87,6 @@ class MobileNetV2(nn.Module):
             nn.MaxPool1d(kernel_size=5, stride=5)
         )
         
-        # MobileNetV2 Bottleneck 레이아웃 (t, c, n, s)
         self.configs = [
             [1, 16, 1, 1],
             [6, 24, 2, 2],
@@ -114,7 +112,6 @@ class MobileNetV2(nn.Module):
             nn.ReLU6()
         )
         
-        # 26개 독립 헤드 선언 (각 축별 256클래스 확률 로짓 분출)
         self.classifiers = nn.ModuleList([
             nn.Sequential(
                 nn.Dropout(0.4),
@@ -126,7 +123,7 @@ class MobileNetV2(nn.Module):
         x = self.stem(x)
         x = self.features(x)
         x = self.head(x)
-        x = x.mean(dim=2) # GAP 연산 레이어
+        x = x.mean(dim=2)
         
         outputs = [clf(x) for clf in self.classifiers]
         return outputs
