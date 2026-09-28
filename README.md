@@ -10,7 +10,7 @@ This repository contains the four benchmarked 1D-CNN architectures, the training
 
 | File | Purpose |
 |---|---|
-| `models.py` | The four architectures (Modified ASCAD, ResNet-18, MobileNetV2, EfficientNet-B0), in multi-head and single-head form |
+| `models.py` | The four architectures (Modified ASCAD, ResNet-18, MobileNet V2, EfficientNet-B0), in multi-head and single-head form |
 | `dataset.py` | `.npz` loader and the expected array format |
 | `train_measured.py` | Training on the locally measured dataset (78 heads) |
 | `train_open.py` | Training on the public dataset (1 head) |
@@ -18,13 +18,13 @@ This repository contains the four benchmarked 1D-CNN architectures, the training
 | `eval_open.py` | Single-trace Hamming-weight GE / SR, open dataset |
 | `eval_key_recovery.py` | Pairwise key-recovery GE over the full candidate space |
 
-All results in the paper use 10 random seeds per configuration.
+All results in the paper use 10 random seeds per configuration, except the non-convergent EfficientNet-B0 runs on the local dataset, which used 5-7 seeds at each of four learning rates.
 
 ## Profiling target
 
 The classification target is the 17-class Hamming weight (HW 0-16) of the accumulated BaseMul output. The local dataset profiles 78 coefficients concurrently; the open dataset profiles 2.
 
-Training configuration (Table I of the paper): Adam, lr 1e-4, batch 32, 100 epochs, patience 15, early stopping at 0.5% improvement, hard stop at 95% validation accuracy. Two documented exceptions apply on the local dataset: MobileNetV2 uses 10x learning rate and 4x batch size, and EfficientNet-B0 was swept over four learning rates (1e-4 to 3e-3).
+Training configuration (Table I of the paper): Adam, lr 1e-4, batch 32, 100 epochs, patience 15, early stopping at 0.5% improvement, hard stop at 95% validation accuracy. Two documented exceptions apply on the local dataset: MobileNet V2 uses learning rate 1e-3 and batch size 128, and EfficientNet-B0 was swept over four learning rates (1e-4 to 3e-3).
 
 ---
 
@@ -91,6 +91,6 @@ The shell expands `part*` in lexicographic order, which matches the split order.
 If you use this code or the dataset, please cite the dataset record:
 
 ```
-S. W. Bae, "Blind SCA on Software-based CRYSTALS-Kyber: Power Trace Dataset,"
+S.-W. Bae, "Blind SCA on Software-based CRYSTALS-Kyber: Power Trace Dataset,"
 Zenodo, 2026. doi: 10.5281/zenodo.22961832
 ```
