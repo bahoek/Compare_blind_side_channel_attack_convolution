@@ -30,7 +30,7 @@ Training configuration (Table I of the paper): Adam, lr 1e-4, batch 32, 100 epoc
 
 ## Input format
 
-The scripts read pre-processed `.npz` files. Traces are expected to be already cropped to the region of interest and, where applicable, already normalized.
+The scripts read `.npz` files whose traces are already cropped to the region of interest **and already normalized**. They do not normalize internally.
 
 | Array | Shape | Notes |
 |---|---|---|
@@ -38,6 +38,23 @@ The scripts read pre-processed `.npz` files. Traces are expected to be already c
 | `labels` | `(N, 78)` local, `(N,)` open | Hamming weight, values 0-16 |
 
 `eval_key_recovery.py` additionally reads a `key_hypotheses.npz` holding the precomputed candidate table and the per-trace row indices.
+
+### Normalization
+
+The released traces are raw. Both datasets in the paper are Z-score standardized **per sample position**, with mean and standard deviation computed on the **profiling (training) split only** and applied unchanged to all three splits. Apply this before training or evaluation:
+
+```python
+import numpy as np
+
+Xtr = np.load("kyber_train_crop.npz")["traces"].astype(np.float32)
+mu  = Xtr.mean(axis=0)
+sd  = Xtr.std(axis=0)
+sd[sd == 0] = 1.0
+
+Xtr = (Xtr - mu) / sd          # reuse the same mu/sd for valid and test
+```
+
+Do not recompute `mu`/`sd` on the validation or test split, and do not normalize per trace. Either change alters the reported numbers.
 
 The acquisition, alignment, and labeling pipeline is internal to our laboratory and is not part of this release. Section III of the paper describes the measurement setup and the leakage model in full; the open dataset of Rezaeezade et al. is distributed with the inputs needed to derive its labels, so the open-dataset results can be reproduced end to end from public material.
 
@@ -47,7 +64,7 @@ The locally measured traces are available at:
 
 **https://doi.org/10.5281/zenodo.22961832**
 
-Traces were collected on an STM32F415 (CW308 UFO board) running the unprotected reference implementation of Kyber-768 (adapted from PQClean), captured with a ChipWhisperer-Husky Plus at 25 dB LNA gain. Each trace uses a fresh uniformly random 1088-byte ciphertext. The region of interest spans 40,000 samples around the BaseMul operation in the NTT domain, stored as raw unscaled signals.
+Traces were collected on an STM32F415 (CW308 UFO board) running the unprotected reference implementation of Kyber-768 (adapted from PQClean), captured with a ChipWhisperer-Husky Plus at 25 dB LNA gain. Each trace uses a fresh uniformly random 1088-byte ciphertext. The region of interest spans 40,000 samples around the BaseMul operation in the NTT domain, stored as raw unscaled signals; normalize them as described above before use.
 
 | File | Traces |
 |---|---|
